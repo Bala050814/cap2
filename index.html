@@ -1,0 +1,1793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stochastic Systems Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --card: #1a1a26;
+    --border: #2a2a40;
+    --accent: #00f5c4;
+    --accent2: #7c3aed;
+    --accent3: #f59e0b;
+    --accent4: #ef4444;
+    --accent5: #3b82f6;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --glow: 0 0 20px rgba(0,245,196,0.3);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,245,196,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,245,196,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 40px 60px 30px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+
+  .logo-area h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  .logo-area h1 span {
+    color: var(--accent);
+    text-shadow: var(--glow);
+  }
+
+  .logo-area p {
+    color: var(--muted);
+    font-size: 0.75rem;
+    margin-top: 8px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .unit-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .pill {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    font-size: 0.65rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .pill:hover, .pill.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,245,196,0.05);
+    box-shadow: var(--glow);
+  }
+
+  .pill[data-unit="2"].active { border-color: var(--accent2); color: var(--accent2); background: rgba(124,58,237,0.05); }
+  .pill[data-unit="3"].active { border-color: var(--accent3); color: var(--accent3); background: rgba(245,158,11,0.05); }
+  .pill[data-unit="4"].active { border-color: var(--accent4); color: var(--accent4); background: rgba(239,68,68,0.05); }
+  .pill[data-unit="5"].active { border-color: var(--accent5); color: var(--accent5); background: rgba(59,130,246,0.05); }
+
+  main {
+    position: relative;
+    z-index: 10;
+    padding: 40px 60px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .unit-section {
+    display: none;
+    animation: fadeIn 0.4s ease;
+  }
+
+  .unit-section.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    margin-bottom: 30px;
+  }
+
+  .unit-badge {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 2px;
+  }
+
+  .u1 { background: rgba(0,245,196,0.15); color: var(--accent); border: 1px solid var(--accent); }
+  .u2 { background: rgba(124,58,237,0.15); color: var(--accent2); border: 1px solid var(--accent2); }
+  .u3 { background: rgba(245,158,11,0.15); color: var(--accent3); border: 1px solid var(--accent3); }
+  .u4 { background: rgba(239,68,68,0.15); color: var(--accent4); border: 1px solid var(--accent4); }
+  .u5 { background: rgba(59,130,246,0.15); color: var(--accent5); border: 1px solid var(--accent5); }
+
+  .section-header h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    font-weight: 800;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+  }
+
+  @media (max-width: 900px) {
+    main { padding: 24px 20px; }
+    header { padding: 24px 20px; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .card.u1::before { background: var(--accent); }
+  .card.u2::before { background: var(--accent2); }
+  .card.u3::before { background: var(--accent3); }
+  .card.u4::before { background: var(--accent4); }
+  .card.u5::before { background: var(--accent5); }
+
+  .card h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    letter-spacing: -0.01em;
+  }
+
+  .card p {
+    color: var(--muted);
+    font-size: 0.75rem;
+    line-height: 1.7;
+    margin-bottom: 14px;
+  }
+
+  label {
+    display: block;
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    margin-bottom: 8px;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(0,245,196,0.5);
+  }
+
+  .range-u2::-webkit-slider-thumb { background: var(--accent2); box-shadow: 0 0 8px rgba(124,58,237,0.5); }
+  .range-u3::-webkit-slider-thumb { background: var(--accent3); box-shadow: 0 0 8px rgba(245,158,11,0.5); }
+  .range-u4::-webkit-slider-thumb { background: var(--accent4); box-shadow: 0 0 8px rgba(239,68,68,0.5); }
+  .range-u5::-webkit-slider-thumb { background: var(--accent5); box-shadow: 0 0 8px rgba(59,130,246,0.5); }
+
+  .val-display {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--accent);
+    font-family: 'Syne', sans-serif;
+    margin-bottom: 4px;
+  }
+
+  .val-display.u2 { color: var(--accent2); }
+  .val-display.u3 { color: var(--accent3); }
+  .val-display.u4 { color: var(--accent4); }
+  .val-display.u5 { color: var(--accent5); }
+
+  canvas {
+    width: 100%;
+    border-radius: 4px;
+    display: block;
+    background: var(--surface);
+  }
+
+  .formula {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px 16px;
+    font-size: 0.85rem;
+    color: var(--accent);
+    text-align: center;
+    margin: 12px 0;
+    letter-spacing: 0.05em;
+  }
+
+  .formula.u2 { color: var(--accent2); }
+  .formula.u3 { color: var(--accent3); }
+  .formula.u4 { color: var(--accent4); }
+  .formula.u5 { color: var(--accent5); }
+
+  .btn {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 10px 20px;
+    cursor: pointer;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-radius: 2px;
+    transition: all 0.2s;
+    margin-top: 10px;
+  }
+
+  .btn:hover {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  .btn.u2 { border-color: var(--accent2); color: var(--accent2); }
+  .btn.u2:hover { background: var(--accent2); color: var(--bg); }
+  .btn.u3 { border-color: var(--accent3); color: var(--accent3); }
+  .btn.u3:hover { background: var(--accent3); color: var(--bg); }
+  .btn.u4 { border-color: var(--accent4); color: var(--accent4); }
+  .btn.u4:hover { background: var(--accent4); color: var(--bg); }
+  .btn.u5 { border-color: var(--accent5); color: var(--accent5); }
+  .btn.u5:hover { background: var(--accent5); color: var(--bg); }
+
+  .stat-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .stat-box {
+    flex: 1;
+    min-width: 80px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .stat-box .sv { font-size: 1.3rem; font-weight: 700; font-family: 'Syne', sans-serif; }
+  .stat-box .sk { font-size: 0.6rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+
+  .matrix-grid {
+    display: grid;
+    gap: 4px;
+    margin: 12px 0;
+  }
+
+  .matrix-cell {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 8px;
+    text-align: center;
+    font-size: 0.8rem;
+    transition: all 0.3s;
+  }
+
+  .matrix-cell.highlight {
+    border-color: var(--accent3);
+    color: var(--accent3);
+    background: rgba(245,158,11,0.1);
+  }
+
+  .queue-vis {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin: 10px 0;
+  }
+
+  .queue-person {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    display: flex;align-items: center;justify-content: center;
+    font-size: 14px;
+    animation: popIn 0.3s ease;
+  }
+
+  @keyframes popIn {
+    from { transform: scale(0); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .queue-server {
+    width: 40px; height: 40px;
+    border-radius: 4px;
+    border: 2px solid var(--accent);
+    display: flex;align-items:center;justify-content:center;
+    font-size: 18px;
+  }
+
+  .arrow { color: var(--muted); font-size: 20px; }
+
+  .description-box {
+    background: linear-gradient(135deg, var(--surface), var(--card));
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    padding: 20px;
+    margin-bottom: 24px;
+    font-size: 0.78rem;
+    line-height: 1.8;
+    color: var(--text);
+  }
+
+  .description-box.u2 { border-left-color: var(--accent2); }
+  .description-box.u3 { border-left-color: var(--accent3); }
+  .description-box.u4 { border-left-color: var(--accent4); }
+  .description-box.u5 { border-left-color: var(--accent5); }
+
+  .two-input {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    border-radius: 2px;
+    width: 100%;
+    outline: none;
+  }
+
+  .prob-bar-container { margin: 6px 0; }
+  .prob-bar-label { display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--muted); margin-bottom: 3px; }
+  .prob-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .prob-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+
+  .sim-log {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px;
+    height: 140px;
+    overflow-y: auto;
+    font-size: 0.65rem;
+    line-height: 1.8;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .sim-log span.ok { color: var(--accent); }
+  .sim-log span.warn { color: var(--accent3); }
+  .sim-log span.info { color: var(--accent5); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--surface); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-area">
+    <h1>Stochastic <span>Systems</span> Explorer</h1>
+    <p>Queueing Theory &amp; Random Processes &mdash; Interactive Simulation</p>
+  </div>
+  <div class="unit-pills">
+    <button class="pill active" data-unit="1" onclick="showUnit(1)">Unit I &mdash; Poisson</button>
+    <button class="pill" data-unit="2" onclick="showUnit(2)">Unit II &mdash; Conditional</button>
+    <button class="pill" data-unit="3" onclick="showUnit(3)">Unit III &mdash; Markov Chain</button>
+    <button class="pill" data-unit="4" onclick="showUnit(4)">Unit IV &mdash; Cross-Correlation</button>
+    <button class="pill" data-unit="5" onclick="showUnit(5)">Unit V &mdash; Linear Systems</button>
+  </div>
+</header>
+
+<main>
+
+<!-- UNIT 1: POISSON DISTRIBUTION -->
+<section class="unit-section active" id="unit1">
+  <div class="section-header">
+    <span class="unit-badge u1">Unit I</span>
+    <h2>Poisson Distribution — Arrival Process</h2>
+  </div>
+  <div class="description-box u1">
+    The <strong>Poisson distribution</strong> models the number of arrivals in a fixed time period. In queueing theory, customers arrive at a rate λ (lambda) per unit time. The probability of k arrivals is P(X=k) = e<sup>-λ</sup>λ<sup>k</sup>/k!. The inter-arrival times follow an Exponential distribution with mean 1/λ.
+  </div>
+  <div class="grid-2">
+    <div class="card u1">
+      <h3>PMF Visualizer</h3>
+      <p>Adjust λ to see how the Poisson probability mass function shifts.</p>
+      <label>Rate λ (arrivals/hour)</label>
+      <input type="range" id="lambda1" min="0.5" max="15" step="0.5" value="4" oninput="updatePoisson()">
+      <div class="formula">P(X=k) = e<sup>-λ</sup> · λ<sup>k</sup> / k!</div>
+      <canvas id="poissonChart" height="200"></canvas>
+      <div class="stat-row">
+        <div class="stat-box"><div class="sv" id="pMean" style="color:var(--accent)">4</div><div class="sk">Mean (λ)</div></div>
+        <div class="stat-box"><div class="sv" id="pVar" style="color:var(--accent)">4</div><div class="sk">Variance</div></div>
+        <div class="stat-box"><div class="sv" id="pStd" style="color:var(--accent)">2</div><div class="sk">Std Dev</div></div>
+        <div class="stat-box"><div class="sv" id="pMode" style="color:var(--accent)">4</div><div class="sk">Mode</div></div>
+      </div>
+    </div>
+    <div class="card u1">
+      <h3>Arrival Simulation</h3>
+      <p>Simulate real-time customer arrivals in a queueing system.</p>
+      <div class="two-input">
+        <div>
+          <label>λ (arrivals/sec)</label>
+          <input type="range" id="lambda2" min="0.2" max="3" step="0.1" value="1" oninput="document.getElementById('lambda2Val').textContent=this.value">
+          <div class="val-display" id="lambda2Val">1.0</div>
+        </div>
+        <div>
+          <label>Sim Speed</label>
+          <select id="simSpeed">
+            <option value="100">Fast</option>
+            <option value="300" selected>Normal</option>
+            <option value="700">Slow</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <label>Queue Visualization</label>
+        <div class="queue-vis" id="queueVis">
+          <div class="queue-server">🏪</div>
+          <div class="arrow">←</div>
+        </div>
+      </div>
+      <div class="sim-log" id="simLog"></div>
+      <button class="btn" id="simBtn" onclick="toggleSim()">Start Simulation</button>
+      <div class="stat-row" style="margin-top:10px">
+        <div class="stat-box"><div class="sv" id="simCount" style="color:var(--accent)">0</div><div class="sk">Total Arrivals</div></div>
+        <div class="stat-box"><div class="sv" id="simRate" style="color:var(--accent)">0</div><div class="sk">Actual Rate</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="grid-3" style="margin-top:24px">
+    <div class="card u1">
+      <h3>Probability Calculator</h3>
+      <p>Compute P(X = k), P(X ≤ k), P(X > k) for given λ and k.</p>
+      <label>Rate λ</label>
+      <input type="range" id="pcLambda" min="0.5" max="10" step="0.5" value="3" oninput="calcProb()">
+      <div class="val-display" id="pcLambdaVal">3</div>
+      <label>k (events)</label>
+      <input type="range" id="pcK" min="0" max="20" step="1" value="3" oninput="calcProb()">
+      <div class="val-display" id="pcKVal">3</div>
+      <div id="probResults" style="margin-top:10px"></div>
+    </div>
+    <div class="card u1">
+      <h3>Inter-arrival Times</h3>
+      <p>If arrivals are Poisson(λ), the gap between arrivals ~ Exp(λ).</p>
+      <canvas id="expChart" height="180"></canvas>
+      <div class="formula">f(t) = λ · e<sup>-λt</sup>, t ≥ 0</div>
+    </div>
+    <div class="card u1">
+      <h3>Real-world Context</h3>
+      <p>The Poisson process governs arrival rates in many service systems:</p>
+      <div style="display:grid; gap:8px; margin-top:8px">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:10px;font-size:0.72rem;">🏥 Hospital emergencies: ~3-8/hr</div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:10px;font-size:0.72rem;">📞 Call center calls: ~20-60/hr</div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:10px;font-size:0.72rem;">🏦 Bank arrivals: ~10-30/hr</div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:10px;font-size:0.72rem;">🌐 Web server requests: 100-10000/sec</div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:10px;font-size:0.72rem;">🚗 Toll booth arrivals: ~15-40/hr</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- UNIT 2: CONDITIONAL DISTRIBUTION -->
+<section class="unit-section" id="unit2">
+  <div class="section-header">
+    <span class="unit-badge u2">Unit II</span>
+    <h2>Conditional Distribution — Waiting Time Estimation</h2>
+  </div>
+  <div class="description-box u2">
+    <strong>Conditional distributions</strong> allow us to estimate waiting times given known system states. In an M/M/1 queue, the conditional distribution of wait time W given that k customers are already present determines service quality. P(W>t | N=k) = e<sup>-μ(k+1)t</sup> for exponential service. Bayes' theorem links prior queue state to posterior wait time.
+  </div>
+  <div class="grid-2">
+    <div class="card u2">
+      <h3>Conditional Waiting Time</h3>
+      <p>Given N=k customers in system, what is the distribution of waiting time W?</p>
+      <label>Arrival Rate λ</label>
+      <input type="range" class="range-u2" id="cdLambda" min="0.1" max="4.9" step="0.1" value="2" oninput="updateConditional()">
+      <div class="two-input" style="margin-top:8px">
+        <div>
+          <label>Service Rate μ</label>
+          <input type="range" class="range-u2" id="cdMu" min="1" max="10" step="0.5" value="4" oninput="updateConditional()">
+          <div class="val-display u2" id="cdMuVal">4</div>
+        </div>
+        <div>
+          <label>Customers in Queue (k)</label>
+          <input type="range" class="range-u2" id="cdK" min="0" max="10" step="1" value="2" oninput="updateConditional()">
+          <div class="val-display u2" id="cdKVal">2</div>
+        </div>
+      </div>
+      <div class="formula u2">P(W>t | N=k) = e<sup>-μ(k+1)t</sup></div>
+      <canvas id="condChart" height="200"></canvas>
+    </div>
+    <div class="card u2">
+      <h3>Bayes' Theorem for Queue State</h3>
+      <p>Given a customer arrived and waited t seconds, estimate the probability of each queue state.</p>
+      <div class="formula u2">P(N=k | W=t) ∝ P(W=t | N=k) · P(N=k)</div>
+      <label>Observed Wait Time t (seconds)</label>
+      <input type="range" class="range-u2" id="bayesT" min="0" max="5" step="0.1" value="1" oninput="updateBayes()">
+      <div class="val-display u2" id="bayesTVal">1.0</div>
+      <div id="bayesResults" style="margin-top:12px"></div>
+      <div class="stat-row" style="margin-top:10px">
+        <div class="stat-box">
+          <div class="sv u2" id="cdUtil">50%</div><div class="sk">Server Utilization ρ</div>
+        </div>
+        <div class="stat-box">
+          <div class="sv u2" id="cdEW">0.5</div><div class="sk">E[W] (mean wait)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="grid-3" style="margin-top:24px">
+    <div class="card u2">
+      <h3>M/M/1 State Probabilities</h3>
+      <p>P(N=k) = (1-ρ)·ρ<sup>k</sup> where ρ = λ/μ</p>
+      <div id="stateProbs" style="margin-top:8px"></div>
+    </div>
+    <div class="card u2">
+      <h3>Joint Distribution Table</h3>
+      <p>Joint probability of (state k, wait exceeds t)</p>
+      <canvas id="jointChart" height="180"></canvas>
+    </div>
+    <div class="card u2">
+      <h3>Key Formulas</h3>
+      <div style="display:grid; gap:8px">
+        <div class="formula u2" style="font-size:0.7rem">E[W] = λ / (μ(μ-λ))</div>
+        <div class="formula u2" style="font-size:0.7rem">E[N] = λ / (μ-λ)</div>
+        <div class="formula u2" style="font-size:0.7rem">Var[W] = (2μ-λ) / (μ(μ-λ)²)</div>
+        <div class="formula u2" style="font-size:0.7rem">P(W>t) = ρ·e<sup>-(μ-λ)t</sup></div>
+        <div class="formula u2" style="font-size:0.7rem">ρ = λ/μ &lt; 1 (stable)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- UNIT 3: MARKOV CHAIN -->
+<section class="unit-section" id="unit3">
+  <div class="section-header">
+    <span class="unit-badge u3">Unit III</span>
+    <h2>Markov Chain — State Transitions</h2>
+  </div>
+  <div class="description-box u3">
+    A <strong>Markov chain</strong> models the queue state at each discrete step, where the future state depends only on the current state. In M/M/1/K queues, states represent the number of customers {0,1,2,...,K}. The birth-death process with birth rate λ and death rate μ defines the transition matrix.
+  </div>
+  <div class="grid-2">
+    <div class="card u3">
+      <h3>Transition Matrix</h3>
+      <p>M/M/1/K Birth-Death Chain with capacity K.</p>
+      <div class="two-input">
+        <div>
+          <label>Capacity K</label>
+          <input type="range" class="range-u3" id="mcK" min="2" max="6" step="1" value="4" oninput="updateMarkov()">
+          <div class="val-display u3" id="mcKVal">4</div>
+        </div>
+        <div>
+          <label>Traffic ρ = λ/μ</label>
+          <input type="range" class="range-u3" id="mcRho" min="0.2" max="2.0" step="0.1" value="0.7" oninput="updateMarkov()">
+          <div class="val-display u3" id="mcRhoVal">0.7</div>
+        </div>
+      </div>
+      <div class="formula u3">P(i→i+1) = λ/(λ+μ), P(i→i-1) = μ/(λ+μ)</div>
+      <div id="transMatrix"></div>
+    </div>
+    <div class="card u3">
+      <h3>Chain Simulation</h3>
+      <p>Watch the Markov chain evolve step by step.</p>
+      <canvas id="markovPath" height="180"></canvas>
+      <div class="stat-row" style="margin-top:10px">
+        <div class="stat-box"><div class="sv u3" id="mcCurrent">0</div><div class="sk">Current State</div></div>
+        <div class="stat-box"><div class="sv u3" id="mcStep">0</div><div class="sk">Steps</div></div>
+        <div class="stat-box"><div class="sv u3" id="mcAvgState">0</div><div class="sk">Avg State</div></div>
+      </div>
+      <button class="btn u3" onclick="stepMarkov()">Step Forward ▶</button>
+      <button class="btn u3" onclick="runMarkov()" id="mcRunBtn" style="margin-left:8px">Auto Run</button>
+    </div>
+  </div>
+  <div class="grid-3" style="margin-top:24px">
+    <div class="card u3">
+      <h3>Steady-State Distribution</h3>
+      <p>π<sub>k</sub> = C · ρ<sup>k</sup> where C = (1-ρ)/(1-ρ<sup>K+1</sup>)</p>
+      <canvas id="steadyChart" height="200"></canvas>
+    </div>
+    <div class="card u3">
+      <h3>State Frequency Histogram</h3>
+      <p>Empirical distribution after simulation (compare to theoretical steady-state)</p>
+      <canvas id="freqChart" height="200"></canvas>
+    </div>
+    <div class="card u3">
+      <h3>Markov Properties</h3>
+      <div style="display:grid; gap:8px; margin-top:4px">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;font-size:0.72rem;line-height:1.6">
+          <strong style="color:var(--accent3)">Memoryless</strong><br>
+          Future state depends only on current state, not history.
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;font-size:0.72rem;line-height:1.6">
+          <strong style="color:var(--accent3)">Ergodic</strong><br>
+          For ρ ≠ 1, the chain is irreducible and aperiodic → has unique stationary distribution.
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;font-size:0.72rem;line-height:1.6">
+          <strong style="color:var(--accent3)">Balance Equations</strong><br>
+          λ·π<sub>k</sub> = μ·π<sub>k+1</sub> (detailed balance)
+        </div>
+        <div id="mcStats" style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;font-size:0.72rem;line-height:1.6">
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- UNIT 4: CROSS-CORRELATION -->
+<section class="unit-section" id="unit4">
+  <div class="section-header">
+    <span class="unit-badge u4">Unit IV</span>
+    <h2>Cross-Correlation — Arrival vs Departure</h2>
+  </div>
+  <div class="description-box u4">
+    The <strong>cross-correlation function</strong> R<sub>XY</sub>(τ) = E[X(t)·Y(t+τ)] measures the statistical relationship between the arrival process X(t) and departure process Y(t) at lag τ. In a stable queue, departures are correlated with arrivals at positive lags (departure follows arrival). Peak correlation occurs at the mean service time.
+  </div>
+  <div class="grid-2">
+    <div class="card u4">
+      <h3>Arrival & Departure Signals</h3>
+      <p>Simulate arrival process X(t) and observe departure process Y(t) with service delay.</p>
+      <div class="two-input">
+        <div>
+          <label>Arrival Rate λ</label>
+          <input type="range" class="range-u4" id="ccLambda" min="0.5" max="5" step="0.5" value="2" oninput="updateCrossCorr()">
+          <div class="val-display u4" id="ccLambdaVal">2</div>
+        </div>
+        <div>
+          <label>Service Rate μ</label>
+          <input type="range" class="range-u4" id="ccMu" min="2" max="10" step="0.5" value="4" oninput="updateCrossCorr()">
+          <div class="val-display u4" id="ccMuVal">4</div>
+        </div>
+      </div>
+      <canvas id="signalChart" height="180"></canvas>
+      <p style="margin-top:8px; font-size:0.65rem; color:var(--muted)">Red = arrivals X(t), Blue = departures Y(t)</p>
+    </div>
+    <div class="card u4">
+      <h3>Cross-Correlation Function R<sub>XY</sub>(τ)</h3>
+      <p>R<sub>XY</sub>(τ) = E[X(t)·Y(t+τ)] — peak indicates average service delay.</p>
+      <div class="formula u4">R<sub>XY</sub>(τ) = λ · e<sup>-μ|τ-1/μ|</sup></div>
+      <canvas id="xcorrChart" height="180"></canvas>
+      <div class="stat-row" style="margin-top:10px">
+        <div class="stat-box"><div class="sv u4" id="peakLag">0.25</div><div class="sk">Peak Lag τ*</div></div>
+        <div class="stat-box"><div class="sv u4" id="peakCorr">0.8</div><div class="sk">Peak R<sub>XY</sub></div></div>
+        <div class="stat-box"><div class="sv u4" id="meanService">0.25</div><div class="sk">Mean Service</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="grid-3" style="margin-top:24px">
+    <div class="card u4">
+      <h3>Auto-correlation R<sub>XX</sub>(τ)</h3>
+      <p>Self-correlation of Poisson arrival process. Poisson process has flat power spectrum.</p>
+      <canvas id="autocorrChart" height="200"></canvas>
+      <div class="formula u4">R<sub>XX</sub>(τ) = λ² + λδ(τ)</div>
+    </div>
+    <div class="card u4">
+      <h3>Power Spectral Density</h3>
+      <p>Fourier transform of cross-correlation: reveals frequency content of queue dynamics.</p>
+      <canvas id="psdChart" height="200"></canvas>
+    </div>
+    <div class="card u4">
+      <h3>Correlation Interpretation</h3>
+      <div style="display:grid; gap:8px; margin-top:4px">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;font-size:0.72rem;line-height:1.6">
+          <strong style="color:var(--accent4)">τ &lt; 0</strong>: No causal link. Departures don't precede arrivals.
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;font-size:0.72rem;line-height:1.6">
+          <strong style="color:var(--accent4)">τ = 0</strong>: Simultaneous correlation due to shared service pool.
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--accent4);border-radius:4px;padding:12px;font-size:0.72rem;line-height:1.6">
+          <strong style="color:var(--accent4)">τ = 1/μ</strong>: Peak — departure most likely exactly one service time after arrival.
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;font-size:0.72rem;line-height:1.6">
+          <strong style="color:var(--accent4)">τ → ∞</strong>: Correlation decays to λ² (independent processes).
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- UNIT 5: LINEAR SYSTEMS -->
+<section class="unit-section" id="unit5">
+  <div class="section-header">
+    <span class="unit-badge u5">Unit V</span>
+    <h2>Linear Systems with Random Inputs</h2>
+  </div>
+  <div class="description-box u5">
+    A <strong>linear system</strong> with impulse response h(t) processes the random arrival signal X(t) to produce output Y(t) = h(t) * X(t). The output PSD is S<sub>Y</sub>(f) = |H(f)|² · S<sub>X</sub>(f), and the output autocorrelation R<sub>Y</sub>(τ) = h(τ) ★ R<sub>X</sub>(τ). The queue acts as a low-pass filter smoothing the Poisson input.
+  </div>
+  <div class="grid-2">
+    <div class="card u5">
+      <h3>System Configuration</h3>
+      <p>Model the queue as a linear filter with adjustable parameters.</p>
+      <div class="two-input">
+        <div>
+          <label>System Type</label>
+          <select id="sysType" onchange="updateLinearSys()">
+            <option value="exp">Exponential (M/M/1)</option>
+            <option value="erlang">Erlang (M/E_k/1)</option>
+            <option value="rc">RC Low-Pass Filter</option>
+          </select>
+        </div>
+        <div>
+          <label>Service Rate μ</label>
+          <input type="range" class="range-u5" id="lsMu" min="1" max="10" step="0.5" value="3" oninput="updateLinearSys()">
+          <div class="val-display u5" id="lsMuVal">3</div>
+        </div>
+      </div>
+      <label>Input Noise Intensity (λ)</label>
+      <input type="range" class="range-u5" id="lsLambda" min="0.5" max="4" step="0.5" value="1.5" oninput="updateLinearSys()">
+      <div class="val-display u5" id="lsLambdaVal">1.5</div>
+      <div class="formula u5">Y(f) = H(f) · X(f)</div>
+      <canvas id="impulseChart" height="180"></canvas>
+      <p style="font-size:0.65rem; color:var(--muted); margin-top:6px">Impulse response h(t) of the system</p>
+    </div>
+    <div class="card u5">
+      <h3>Input/Output PSD</h3>
+      <p>S<sub>Y</sub>(f) = |H(f)|² · S<sub>X</sub>(f) — shows filtering effect on random input.</p>
+      <canvas id="psdLinChart" height="200"></canvas>
+      <div class="stat-row" style="margin-top:10px">
+        <div class="stat-box"><div class="sv u5" id="lsGain">1</div><div class="sk">DC Gain</div></div>
+        <div class="stat-box"><div class="sv u5" id="lsBW">1</div><div class="sk">Bandwidth</div></div>
+        <div class="stat-box"><div class="sv u5" id="lsOutVar">1</div><div class="sk">Output Variance</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="grid-3" style="margin-top:24px">
+    <div class="card u5">
+      <h3>Transfer Function |H(f)|²</h3>
+      <canvas id="tfChart" height="200"></canvas>
+      <div class="formula u5" id="tfFormula">H(f) = μ/(μ+j2πf)</div>
+    </div>
+    <div class="card u5">
+      <h3>Input vs Output Signal</h3>
+      <p>Poisson random input processed through queue filter</p>
+      <canvas id="ioChart" height="200"></canvas>
+    </div>
+    <div class="card u5">
+      <h3>Wiener-Khinchin Theorem</h3>
+      <div style="display:grid; gap:8px; margin-top:4px">
+        <div class="formula u5" style="font-size:0.7rem">S<sub>X</sub>(f) = ∫R<sub>X</sub>(τ)e<sup>-j2πfτ</sup>dτ</div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;font-size:0.72rem;line-height:1.6">
+          <strong style="color:var(--accent5)">Key Result:</strong> PSD of output equals squared magnitude of transfer function times input PSD.
+        </div>
+        <div class="formula u5" style="font-size:0.7rem">R<sub>Y</sub>(τ) = h(τ) ★ R<sub>X</sub>(τ)</div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px;font-size:0.72rem;line-height:1.6">
+          <strong style="color:var(--accent5)">Queue as Filter:</strong> Exponential service = 1st order IIR low-pass filter. Smooths bursty arrivals.
+        </div>
+        <div class="formula u5" style="font-size:0.7rem">σ²<sub>Y</sub> = ∫S<sub>Y</sub>(f)df</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+// ========================== UTILITY ==========================
+function factorial(n) {
+  if (n <= 1) return 1;
+  let r = 1; for (let i=2; i<=n; i++) r *= i; return r;
+}
+function poissonPMF(k, lambda) {
+  return Math.exp(-lambda) * Math.pow(lambda, k) / factorial(k);
+}
+
+// ========================== CANVAS HELPERS ==========================
+function clearCanvas(canvas, bg='#12121a') {
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth || canvas.parentElement.offsetWidth || 400;
+  canvas.height = parseInt(canvas.getAttribute('height')) || 200;
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  return ctx;
+}
+
+function drawAxes(ctx, w, h, pad, color='#2a2a40') {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(pad, pad/2);
+  ctx.lineTo(pad, h-pad);
+  ctx.lineTo(w-pad/2, h-pad);
+  ctx.stroke();
+}
+
+function label(ctx, text, x, y, color='#6b6b8a', size=10, align='center') {
+  ctx.fillStyle = color;
+  ctx.font = `${size}px Space Mono, monospace`;
+  ctx.textAlign = align;
+  ctx.fillText(text, x, y);
+}
+
+// ========================== UNIT 1 ==========================
+function updatePoisson() {
+  const lambda = parseFloat(document.getElementById('lambda1').value);
+  const canvas = document.getElementById('poissonChart');
+  const ctx = clearCanvas(canvas);
+  const w = canvas.width, h = canvas.height;
+  const pad = 40;
+  const maxK = Math.max(20, Math.ceil(lambda*3));
+  drawAxes(ctx, w, h, pad);
+
+  const probs = [];
+  for (let k=0; k<=maxK; k++) probs.push(poissonPMF(k, lambda));
+  const maxP = Math.max(...probs);
+  const barW = (w - pad*1.5) / probs.length;
+
+  probs.forEach((p, k) => {
+    const bh = (p/maxP) * (h - pad*1.5);
+    const x = pad + k*barW;
+    const y = h - pad - bh;
+    // gradient bar
+    const grad = ctx.createLinearGradient(x, y, x, h-pad);
+    grad.addColorStop(0, '#00f5c4');
+    grad.addColorStop(1, 'rgba(0,245,196,0.1)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x+1, y, barW-2, bh);
+    if (k % Math.max(1, Math.floor(maxK/10)) === 0 || k === Math.floor(lambda)) {
+      label(ctx, k, x + barW/2, h-pad+12, '#6b6b8a', 9);
+    }
+  });
+
+  // Mode bar highlight
+  const mode = Math.floor(lambda);
+  const modeH = (probs[mode]/maxP)*(h-pad*1.5);
+  ctx.strokeStyle = '#00f5c4';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(pad+mode*barW+1, h-pad-modeH, barW-2, modeH);
+
+  // Y labels
+  for (let i=0; i<=4; i++) {
+    const yy = h-pad - i*(h-pad*1.5)/4;
+    label(ctx, (maxP*i/4).toFixed(3), pad-4, yy+4, '#6b6b8a', 8, 'right');
+  }
+  label(ctx, 'k (events)', w/2, h-4, '#6b6b8a', 10);
+  label(ctx, `λ = ${lambda}`, w-pad, pad, '#00f5c4', 10, 'right');
+
+  // Stats
+  document.getElementById('pMean').textContent = lambda.toFixed(1);
+  document.getElementById('pVar').textContent = lambda.toFixed(1);
+  document.getElementById('pStd').textContent = Math.sqrt(lambda).toFixed(2);
+  document.getElementById('pMode').textContent = Math.floor(lambda);
+
+  // Update exp chart too
+  drawExpChart(lambda);
+}
+
+function drawExpChart(lambda) {
+  const canvas = document.getElementById('expChart');
+  const ctx = clearCanvas(canvas);
+  const w = canvas.width, h = canvas.height;
+  const pad = 40;
+  const maxT = 4/lambda;
+  const steps = 200;
+  drawAxes(ctx, w, h, pad);
+
+  ctx.beginPath();
+  ctx.strokeStyle = '#00f5c4';
+  ctx.lineWidth = 2;
+  const grad = ctx.createLinearGradient(pad, 0, w-pad/2, 0);
+  for (let i=0; i<=steps; i++) {
+    const t = i/steps * maxT;
+    const f = lambda * Math.exp(-lambda*t);
+    const x = pad + i/steps*(w-pad*1.5);
+    const y = h-pad - f/lambda * (h-pad*1.5);
+    if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  label(ctx, 't (time)', w/2, h-4, '#6b6b8a', 10);
+  label(ctx, 'f(t)', pad-8, pad, '#6b6b8a', 10, 'right');
+}
+
+function calcProb() {
+  const lambda = parseFloat(document.getElementById('pcLambda').value);
+  const k = parseInt(document.getElementById('pcK').value);
+  document.getElementById('pcLambdaVal').textContent = lambda;
+  document.getElementById('pcKVal').textContent = k;
+
+  const pExact = poissonPMF(k, lambda);
+  let pLe = 0;
+  for (let i=0; i<=k; i++) pLe += poissonPMF(i, lambda);
+  const pGt = 1 - pLe;
+
+  const container = document.getElementById('probResults');
+  container.innerHTML = `
+    <div class="prob-bar-container">
+      <div class="prob-bar-label"><span>P(X = ${k})</span><span>${pExact.toFixed(5)}</span></div>
+      <div class="prob-bar"><div class="prob-bar-fill" style="width:${pExact*100/Math.max(pExact,pLe)}%;background:var(--accent)"></div></div>
+    </div>
+    <div class="prob-bar-container">
+      <div class="prob-bar-label"><span>P(X ≤ ${k})</span><span>${pLe.toFixed(5)}</span></div>
+      <div class="prob-bar"><div class="prob-bar-fill" style="width:${pLe*100}%;background:var(--accent)"></div></div>
+    </div>
+    <div class="prob-bar-container">
+      <div class="prob-bar-label"><span>P(X > ${k})</span><span>${pGt.toFixed(5)}</span></div>
+      <div class="prob-bar"><div class="prob-bar-fill" style="width:${pGt*100}%;background:rgba(0,245,196,0.5)"></div></div>
+    </div>
+  `;
+}
+
+// Simulation
+let simRunning = false;
+let simInterval = null;
+let simStart = null;
+let totalArrivals = 0;
+let queuePersons = [];
+
+function toggleSim() {
+  simRunning = !simRunning;
+  const btn = document.getElementById('simBtn');
+  if (simRunning) {
+    btn.textContent = 'Stop Simulation';
+    simStart = Date.now();
+    totalArrivals = 0;
+    runSimStep();
+  } else {
+    btn.textContent = 'Start Simulation';
+    clearTimeout(simInterval);
+  }
+}
+
+const emojis = ['🧑','👩','👨','🧔','👴','👵','🧒','👦','👧'];
+function runSimStep() {
+  if (!simRunning) return;
+  const lambda = parseFloat(document.getElementById('lambda2').value);
+  const speed = parseInt(document.getElementById('simSpeed').value);
+  const interArrival = -Math.log(Math.random()) / lambda * 1000;
+
+  const delay = Math.min(interArrival, speed*2);
+  simInterval = setTimeout(() => {
+    if (!simRunning) return;
+    totalArrivals++;
+    const elapsed = (Date.now()-simStart)/1000;
+    const actualRate = (totalArrivals/elapsed).toFixed(2);
+    document.getElementById('simCount').textContent = totalArrivals;
+    document.getElementById('simRate').textContent = actualRate;
+
+    // Add to queue vis
+    const vis = document.getElementById('queueVis');
+    const person = document.createElement('div');
+    person.className = 'queue-person';
+    person.style.background = `rgba(0,245,196,0.15)`;
+    person.style.border = '1px solid var(--accent)';
+    person.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+    vis.insertBefore(person, vis.children[2]);
+    if (vis.children.length > 8) vis.removeChild(vis.lastChild);
+
+    // Log
+    const log = document.getElementById('simLog');
+    const t = new Date().toLocaleTimeString('en',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    log.innerHTML = `<div>[${t}] <span class="ok">ARRIVAL #${totalArrivals}</span> — rate: ${actualRate}/s</div>` + log.innerHTML;
+    if (log.children.length > 30) log.removeChild(log.lastChild);
+
+    // Service completion after exp time
+    const serviceTime = -Math.log(Math.random()) / (lambda*1.5) * 1000;
+    setTimeout(() => {
+      if (vis.children.length > 2) {
+        vis.removeChild(vis.lastChild);
+        const log2 = document.getElementById('simLog');
+        log2.innerHTML = `<div><span class="info">→ DEPARTURE</span> served in ${(serviceTime/1000).toFixed(2)}s</div>` + log2.innerHTML;
+      }
+    }, serviceTime);
+
+    runSimStep();
+  }, delay);
+}
+
+// ========================== UNIT 2 ==========================
+function updateConditional() {
+  const lambda = parseFloat(document.getElementById('cdLambda').value);
+  const mu = parseFloat(document.getElementById('cdMu').value);
+  const k = parseInt(document.getElementById('cdK').value);
+  document.getElementById('cdMuVal').textContent = mu;
+  document.getElementById('cdKVal').textContent = k;
+
+  const rho = lambda/mu;
+  const EW = lambda/(mu*(mu-lambda));
+  document.getElementById('cdUtil').textContent = (rho*100).toFixed(1)+'%';
+  document.getElementById('cdEW').textContent = rho < 1 ? EW.toFixed(3) : '∞';
+
+  // Conditional survival chart P(W>t|N=k)
+  const canvas = document.getElementById('condChart');
+  const ctx = clearCanvas(canvas);
+  const w = canvas.width, h = canvas.height;
+  const pad = 40;
+  const maxT = 3;
+  const steps = 200;
+  drawAxes(ctx, w, h, pad);
+
+  // Draw for k=0,1,2,...,k
+  const colors = ['#7c3aed','#a855f7','#c084fc','#e9d5ff','#ddd6fe'];
+  for (let ki=0; ki<=Math.min(k,4); ki++) {
+    ctx.beginPath();
+    ctx.strokeStyle = colors[ki] || '#7c3aed';
+    ctx.lineWidth = ki===k ? 2.5 : 1;
+    ctx.setLineDash(ki===k ? [] : [4,4]);
+    for (let i=0; i<=steps; i++) {
+      const t = i/steps * maxT;
+      const p = Math.exp(-mu*(ki+1)*t);
+      const x = pad + i/steps*(w-pad*1.5);
+      const y = h-pad - p*(h-pad*1.5);
+      if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    label(ctx, `k=${ki}`, w-pad+2, h-pad-(Math.exp(-mu*(ki+1)*maxT))*(h-pad*1.5), colors[ki], 8, 'left');
+  }
+  label(ctx, 't', w/2, h-4, '#6b6b8a', 10);
+  label(ctx, 'P(W>t|N=k)', pad, pad-6, '#6b6b8a', 9);
+
+  // Update state probs and bayes
+  updateStateProbs(rho);
+  updateBayes();
+  updateJointChart(mu, lambda);
+}
+
+function updateStateProbs(rho) {
+  const K = 8;
+  const container = document.getElementById('stateProbs');
+  if (rho >= 1) { container.innerHTML = '<p style="color:var(--accent4)">System unstable (ρ ≥ 1)</p>'; return; }
+  let html = '';
+  for (let k=0; k<=K; k++) {
+    const p = (1-rho)*Math.pow(rho,k);
+    html += `<div class="prob-bar-container">
+      <div class="prob-bar-label"><span>P(N=${k})</span><span>${p.toFixed(4)}</span></div>
+      <div class="prob-bar"><div class="prob-bar-fill" style="width:${p*100*1.2}%;background:var(--accent2)"></div></div>
+    </div>`;
+  }
+  container.innerHTML = html;
+}
+
+function updateBayes() {
+  const t = parseFloat(document.getElementById('bayesT').value);
+  const mu = parseFloat(document.getElementById('cdMu').value);
+  const lambda = parseFloat(document.getElementById('cdLambda').value);
+  const rho = lambda/mu;
+  document.getElementById('bayesTVal').textContent = t.toFixed(1);
+
+  if (rho >= 1) { document.getElementById('bayesResults').innerHTML = '<p style="color:var(--accent4)">System unstable</p>'; return; }
+
+  const posteriors = [];
+  let total = 0;
+  for (let k=0; k<=8; k++) {
+    const prior = (1-rho)*Math.pow(rho,k);
+    const likelihood = mu*(k+1)*Math.exp(-mu*(k+1)*t);
+    const joint = prior * likelihood;
+    posteriors.push({ k, v: joint });
+    total += joint;
+  }
+
+  let html = '<div style="font-size:0.65rem;color:var(--muted);margin-bottom:6px">P(N=k | W=' + t.toFixed(1) + ')</div>';
+  posteriors.forEach(({k,v}) => {
+    const post = total > 0 ? v/total : 0;
+    html += `<div class="prob-bar-container">
+      <div class="prob-bar-label"><span>N=${k}</span><span>${post.toFixed(4)}</span></div>
+      <div class="prob-bar"><div class="prob-bar-fill" style="width:${post*100}%;background:var(--accent2)"></div></div>
+    </div>`;
+  });
+  document.getElementById('bayesResults').innerHTML = html;
+}
+
+function updateJointChart(mu, lambda) {
+  const rho = lambda/mu;
+  const canvas = document.getElementById('jointChart');
+  const ctx = clearCanvas(canvas);
+  const w = canvas.width, h = canvas.height;
+  const pad = 40;
+  const K = 5, T = 6;
+  const cellW = (w-pad*1.5)/T;
+  const cellH = (h-pad*1.5)/K;
+  if (rho >= 1) return;
+  for (let k=0; k<K; k++) {
+    for (let ti=0; ti<T; ti++) {
+      const t = ti * 0.5;
+      const prior = (1-rho)*Math.pow(rho,k);
+      const p = prior * Math.exp(-mu*(k+1)*t);
+      const intensity = Math.min(1, p*20);
+      ctx.fillStyle = `rgba(124,58,237,${intensity})`;
+      const x = pad + ti*cellW;
+      const y = pad/2 + k*cellH;
+      ctx.fillRect(x, y, cellW-2, cellH-2);
+      if (intensity > 0.3) label(ctx, p.toFixed(2), x+cellW/2, y+cellH/2+4, '#fff', 8);
+    }
+  }
+  label(ctx, 't →', w/2, h-4, '#6b6b8a', 9);
+  label(ctx, 'k', pad-10, h/2, '#6b6b8a', 9);
+}
+
+// ========================== UNIT 3 ==========================
+let mcHistory = [];
+let mcState = 0;
+let mcStepCount = 0;
+let mcAutoInterval = null;
+let mcFreq = [];
+let mcRunning = false;
+
+function updateMarkov() {
+  const K = parseInt(document.getElementById('mcK').value);
+  const rho = parseFloat(document.getElementById('mcRho').value);
+  document.getElementById('mcKVal').textContent = K;
+  document.getElementById('mcRhoVal').textContent = rho.toFixed(1);
+
+  mcFreq = new Array(K+1).fill(0);
+  mcState = 0; mcHistory = [0]; mcStepCount = 0;
+
+  drawTransMatrix(K, rho);
+  drawSteadyState(K, rho);
+  drawFreqChart(K);
+  updateMCStats(K, rho);
+  drawMarkovPath();
+}
+
+function drawTransMatrix(K, rho) {
+  const lambda = rho/(1+rho);
+  const mu = 1/(1+rho);
+  const size = K+1;
+  const container = document.getElementById('transMatrix');
+  container.style.display = 'grid';
+  container.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+  container.style.gap = '3px';
+  container.innerHTML = '';
+  for (let i=0; i<size; i++) {
+    for (let j=0; j<size; j++) {
+      let val = 0;
+      if (j===i+1 && i<K) val = lambda;
+      else if (j===i-1 && i>0) val = mu;
+      else if (i===j) val = 1-lambda*(i<K?1:0) - mu*(i>0?1:0);
+      const cell = document.createElement('div');
+      cell.className = 'matrix-cell' + (val>0 && i!==j ? ' highlight':'');
+      cell.textContent = val.toFixed(2);
+      cell.style.fontSize = `${Math.max(7, 11-K)}px`;
+      container.appendChild(cell);
+    }
+  }
+}
+
+function drawSteadyState(K, rho) {
+  const canvas = document.getElementById('steadyChart');
+  const ctx = clearCanvas(canvas);
+  const w = canvas.width, h = canvas.height;
+  const pad = 40;
+  const size = K+1;
+  // normalization for finite chain
+  let sum = 0;
+  const pi = [];
+  for (let k=0; k<=K; k++) {
+    const v = Math.pow(rho, k);
+    pi.push(v); sum += v;
+  }
+  const maxP = Math.max(...pi)/sum;
+  const barW = (w-pad*1.5)/size;
+  drawAxes(ctx, w, h, pad);
+  pi.forEach((v, k) => {
+    const p = v/sum;
+    const bh = (p/maxP)*(h-pad*1.5);
+    const x = pad + k*barW;
+    const grad = ctx.createLinearGradient(x, h-pad-bh, x, h-pad);
+    grad.addColorStop(0, '#f59e0b');
+    grad.addColorStop(1, 'rgba(245,158,11,0.1)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x+1, h-pad-bh, barW-2, bh);
+    label(ctx, k, x+barW/2, h-pad+12, '#6b6b8a', 9);
+    label(ctx, p.toFixed(2), x+barW/2, h-pad-bh-4, '#f59e0b', 8);
+  });
+  label(ctx, 'State k', w/2, h-4, '#6b6b8a', 10);
+}
+
+function drawFreqChart(K) {
+  const canvas = document.getElementById('freqChart');
+  const ctx = clearCanvas(canvas);
+  const w = canvas.width, h = canvas.height;
+  const pad = 40;
+  const total = mcFreq.reduce((a,b)=>a+b,0)||1;
+  const maxF = Math.max(1, ...mcFreq)/total;
+  const barW = (w-pad*1.5)/(K+1);
+  drawAxes(ctx, w, h, pad);
+  mcFreq.forEach((f, k) => {
+    const p = f/total;
+    const bh = (p/maxF)*(h-pad*1.5);
+    const x = pad + k*barW;
+    ctx.fillStyle = 'rgba(245,158,11,0.4)';
+    ctx.fillRect(x+1, h-pad-bh, barW-2, bh);
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x+1, h-pad-bh, barW-2, bh);
+    label(ctx, k, x+barW/2, h-pad+12, '#6b6b8a', 9);
+  });
+  label(ctx, 'Empirical freq.', w/2, h-4, '#6b6b8a', 9);
+}
+
+function drawMarkovPath() {
+  const K = parseInt(document.getElementById('mcK').value);
+  const canvas = document.getElementById('markovPath');
+  const ctx = clearCanvas(canvas);
+  const w = canvas.width, h = canvas.height;
+  const pad = 40;
+  const maxShow = 100;
+  const hist = mcHistory.slice(-maxShow);
+  drawAxes(ctx, w, h, pad);
+  // Y axis labels
+  for (let k=0; k<=K; k++) {
+    const y = h-pad - k/(K)*(h-pad*1.5);
+    label(ctx, k, pad-4, y+4, '#6b6b8a', 8, 'right');
+    ctx.strokeStyle = '#1e1e2e';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(w-pad/2, y); ctx.stroke();
+  }
+  if (hist.length < 2) return;
+  ctx.beginPath();
+  ctx.strokeStyle = '#f59e0b';
+  ctx.lineWidth = 1.5;
+  hist.forEach((s, i) => {
+    const x = pad + i/(maxShow-1)*(w-pad*1.5);
+    const y = h-pad - s/K*(h-pad*1.5);
+    if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  // Current state dot
+  const lastX = pad + (hist.length-1)/(maxShow-1)*(w-pad*1.5);
+  const lastY = h-pad - hist[hist.length-1]/K*(h-pad*1.5);
+  ctx.beginPath();
+  ctx.arc(lastX, lastY, 5, 0, Math.PI*2);
+  ctx.fillStyle = '#f59e0b';
+  ctx.fill();
+}
+
+function stepMarkov() {
+  const K = parseInt(document.getElementById('mcK').value);
+  const rho = parseFloat(document.getElementById('mcRho').value);
+  const lambda = rho/(1+rho);
+  const mu = 1/(1+rho);
+  const r = Math.random();
+  if (mcState === 0) {
+    if (r < lambda) mcState = 1;
+  } else if (mcState === K) {
+    if (r < mu) mcState = K-1;
+  } else {
+    if (r < lambda) mcState++;
+    else if (r < lambda+mu) mcState--;
+  }
+  mcHistory.push(mcState);
+  mcStepCount++;
+  mcFreq[mcState]++;
+  document.getElementById('mcCurrent').textContent = mcState;
+  document.getElementById('mcStep').textContent = mcStepCount;
+  const avg = mcHistory.reduce((a,b)=>a+b,0)/mcHistory.length;
+  document.getElementById('mcAvgState').textContent = avg.toFixed(2);
+  drawMarkovPath();
+  drawFreqChart(K);
+}
+
+function runMarkov() {
+  mcRunning = !mcRunning;
+  document.getElementById('mcRunBtn').textContent = mcRunning ? 'Stop' : 'Auto Run';
+  if (mcRunning) {
+    const run = () => {
+      if (!mcRunning) return;
+      for (let i=0; i<3; i++) stepMarkov();
+      setTimeout(run, 80);
+    };
+    run();
+  }
+}
+
+function updateMCStats(K, rho) {
+  const sum = (1-Math.pow(rho,K+1))/(1-rho);
+  const EN = (rho/(1-rho)) - (K+1)*Math.pow(rho,K+1)/sum;
+  const PK = Math.pow(rho,K)/sum;
+  document.getElementById('mcStats').innerHTML = `
+    <strong style="color:var(--accent3)">Statistics (ρ=${rho.toFixed(1)}, K=${K})</strong><br>
+    E[N] ≈ ${isNaN(EN)?'—':EN.toFixed(3)}<br>
+    P(N=K) ≈ ${PK.toFixed(4)} (blocking)<br>
+    Throughput: ${((1-PK)*rho/(1+rho)).toFixed(3)}
+  `;
+}
+
+// ========================== UNIT 4 ==========================
+function updateCrossCorr() {
+  const lambda = parseFloat(document.getElementById('ccLambda').value);
+  const mu = parseFloat(document.getElementById('ccMu').value);
+  document.getElementById('ccLambdaVal').textContent = lambda;
+  document.getElementById('ccMuVal').textContent = mu;
+
+  drawSignals(lambda, mu);
+  drawXCorr(lambda, mu);
+  drawAutoCorr(lambda);
+  drawPSD(lambda, mu);
+
+  const meanSvc = 1/mu;
+  document.getElementById('peakLag').textContent = meanSvc.toFixed(3);
+  document.getElementById('peakCorr').textContent = (lambda*mu/(lambda+mu)).toFixed(3);
+  document.getElementById('meanService').textContent = meanSvc.toFixed(3);
+}
+
+function drawSignals(lambda, mu) {
+  const canvas = document.getElementById('signalChart');
+  const ctx = clearCanvas(canvas);
+  const w = canvas.width, h = canvas.height;
+  const pad = 40;
+  const T = 20;
+  const dt = T/500;
+  drawAxes(ctx, w, h, pad);
+
+  // Generate Poisson arrivals
+  const arrivals = [];
+  let t = 0;
+  while (t < T) {
+    t += -Math.log(Math.random())/lambda;
+    arrivals.push(t);
+  }
+
+  // Draw arrival signal (stems)
+  ctx.strokeStyle = 'rgba(239,68,68,0.8)';
+  ctx.lineWidth = 1.5;
+  arrivals.forEach(at => {
+    if (at > T) return;
+    const x = pad + (at/T)*(w-pad*1.5);
+    ctx.beginPath(); ctx.moveTo(x, h-pad); ctx.lineTo(x, h-pad-35); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, h-pad-35, 3, 0, Math.PI*2);
+    ctx.fillStyle = '#ef4444'; ctx.fill();
+  });
+
+  // Departures = arrival + service time
+  ctx.strokeStyle = 'rgba(59,130,246,0.8)';
+  arrivals.forEach(at => {
+    const svc = -Math.log(Math.random())/mu;
+    const dep = at + svc;
+    if (dep > T || at > T) return;
+    const x = pad + (dep/T)*(w-pad*1.5);
+    ctx.beginPath(); ctx.moveTo(x, h-pad); ctx.lineTo(x, h-pad-25); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, h-pad-25, 3, 0, Math.PI*2);
+    ctx.fillStyle = '#3b82f6'; ctx.fill();
+  });
+
+  label(ctx, 't', w/2, h-4, '#6b6b8a', 10);
+  label(ctx, '▲ Arrival (red) ▲ Departure (blue)', w/2, 14, '#6b6b8a', 9);
+}
+
+function drawXCorr(lambda, mu) {
+  const canvas = document.getElementById('xcorrChart');
+  const ctx = clearCanvas(canvas);
+  const w = canvas.width, h = canvas.height;
+  const pad = 40;
+  const tauMax = 4;
+  drawAxes(ctx, w, h, pad);
+
+  const rxy = (tau) => {
+    const meanSvc = 1/mu;
+    if (tau < 0) return lambda*lambda;
+    return lambda*lambda + lambda*mu*Math.exp(-mu*Math.abs(tau-meanSvc));
+  };
+
+  const vals = [];
+  for (let i=0; i<=200; i++) {
+    const tau = -tauMax/2 + i/200*tauMax;
+    vals.push(rxy(tau));
+  }
+  const maxV = Math.max(...vals);
+  const minV = Math.min(...vals);
+
+  ctx.beginPath();
+  ctx.strokeStyle = '#ef4444';
+  ctx.lineWidth = 2;
+  for (let i=0; i<=200; i++) {
+    const tau = -tauMax/2 + i/200*tauMax;
+    const v = rxy(tau);
+    const x = pad + i/200*(w-pad*1.5);
+    const y = h-pad - (v-minV)/(maxV-minV+0.001)*(h-pad*1.5);
+    if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+
+  // Peak line
+  const peakTau = 1/mu;
+  const peakX = pad + (peakTau+tauMax/2)/tauMax*(w-pad*1.5);
+  ctx.strokeStyle = 'rgba(239,68,68,0.3)';
+  ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(peakX, pad/2); ctx.lineTo(peakX, h-pad); ctx.stroke();
+  ctx.setLineDash([]);
+  label(ctx, 'τ*=1/μ', peakX, pad/2-2, '#ef4444', 8);
+
+  // Zero line labels
+  for (let i=-2; i<=2; i++) {
+    const x = pad + (i+tauMax/2)/tauMax*(w-pad*1.5);
+    label(ctx, i, x, h-pad+12, '#6b6b8a', 8);
+  }
+  label(ctx, 'τ', w/2, h-4, '#6b6b8a', 10);
+  label(ctx, 'R_XY(τ)', pad, pad-6, '#6b6b8a', 9);
+}
+
+function drawAutoCorr(lambda) {
+  const canvas = document.getElementById('autocorrChart');
+  const ctx = clearCanvas(canvas);
+  const w = canvas.width, h = canvas.height;
+  const pad = 40;
+  drawAxes(ctx, w, h, pad);
+
+  // R_XX(tau) = lambda^2 for tau!=0, spike at 0
+  const baseY = h-pad - 0.3*(h-pad*1.5);
+  ctx.strokeStyle = '#ef4444';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(pad, baseY); ctx.lineTo(w-pad/2, baseY);
+  ctx.stroke();
+
+  // Delta spike at 0
+  const x0 = w/2;
+  ctx.beginPath();
+  ctx.strokeStyle = '#ef4444';
+  ctx.lineWidth = 3;
+  ctx.moveTo(x0, h-pad); ctx.lineTo(x0, pad/2);
+  ctx.stroke();
+  ctx.beginPath(); ctx.arc(x0, pad/2, 4, 0, Math.PI*2);
+  ctx.fillStyle = '#ef4444'; ctx.fill();
+
+  label(ctx, 'R_XX(τ)=λ²+λδ(τ)', w/2, 14, '#6b6b8a', 9);
+  label(ctx, 'τ=0', x0, h-pad+12, '#ef4444', 8);
+  label(ctx, 'λ²='+lambda*lambda, pad, baseY-4, '#6b6b8a', 8, 'left');
+}
+
+function drawPSD(lambda, mu) {
+  const canvas = document.getElementById('psdChart');
+  const ctx = clearCanvas(canvas);
+  const w = canvas.width, h = canvas.height;
+  const pad = 40;
+  drawAxes(ctx, w, h, pad);
+
+  const fmax = 5;
+  const sxy = (f) => {
+    const omega = 2*Math.PI*f;
+    const denom = mu*mu + omega*omega;
+    return lambda*mu / denom;
+  };
+
+  const vals = [];
+  for (let i=0; i<=200; i++) { vals.push(sxy(i/200*fmax)); }
+  const maxV = Math.max(...vals);
+
+  ctx.beginPath();
+  ctx.strokeStyle = '#ef4444';
+  ctx.lineWidth = 2;
+  for (let i=0; i<=200; i++) {
+    const v = vals[i];
+    const x = pad + i/200*(w-pad*1.5);
+    const y = h-pad - v/maxV*(h-pad*1.5);
+    if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  label(ctx, 'S_XY(f)', w/2, 14, '#6b6b8a', 9);
+  label(ctx, 'f (Hz)', w/2, h-4, '#6b6b8a', 10);
+}
+
+// ========================== UNIT 5 ==========================
+function updateLinearSys() {
+  const mu = parseFloat(document.getElementById('lsMu').value);
+  const lambda = parseFloat(document.getElementById('lsLambda').value);
+  const sysType = document.getElementById('sysType').value;
+  document.getElementById('lsMuVal').textContent = mu;
+  document.getElementById('lsLambdaVal').textContent = lambda;
+
+  drawImpulseResponse(mu, sysType);
+  drawLinPSD(mu, lambda, sysType);
+  drawTransferFunction(mu, sysType);
+  drawIOSignal(mu, lambda, sysType);
+
+  const dcGain = 1;
+  const bw = sysType==='erlang' ? mu/Math.sqrt(3) : (sysType==='rc' ? mu/(2*Math.PI) : mu);
+  const outVar = lambda*lambda/(2*mu);
+  document.getElementById('lsGain').textContent = dcGain;
+  document.getElementById('lsBW').textContent = bw.toFixed(2);
+  document.getElementById('lsOutVar').textContent = outVar.toFixed(3);
+
+  const formulas = {
+    exp: 'H(f) = μ/(μ+j2πf)',
+    erlang: 'H(f) = μ³/(μ+j2πf)³',
+    rc: 'H(f) = 1/(1+j2πf/μ)'
+  };
+  document.getElementById('tfFormula').textContent = formulas[sysType];
+}
+
+function impulseH(t, mu, sysType) {
+  if (t < 0) return 0;
+  if (sysType==='exp') return mu*Math.exp(-mu*t);
+  if (sysType==='erlang') return mu*mu*mu * t*t/2 * Math.exp(-mu*t);
+  if (sysType==='rc') return mu*Math.exp(-mu*t);
+  return 0;
+}
+
+function transferH2(f, mu, sysType) {
+  const omega = 2*Math.PI*f;
+  if (sysType==='exp' || sysType==='rc') return mu*mu/(mu*mu + omega*omega);
+  if (sysType==='erlang') {
+    const denom = mu*mu + omega*omega;
+    return Math.pow(mu*mu/denom, 3);
+  }
+  return 1;
+}
+
+function drawImpulseResponse(mu, sysType) {
+  const canvas = document.getElementById('impulseChart');
+  const ctx = clearCanvas(canvas);
+  const w = canvas.width, h = canvas.height;
+  const pad = 40;
+  const tMax = 5/mu;
+  drawAxes(ctx, w, h, pad);
+
+  const vals = [];
+  for (let i=0; i<=200; i++) vals.push(impulseH(i/200*tMax, mu, sysType));
+  const maxV = Math.max(...vals) || 1;
+
+  ctx.beginPath();
+  const grad = ctx.createLinearGradient(pad, 0, w-pad/2, 0);
+  grad.addColorStop(0, '#3b82f6'); grad.addColorStop(1, 'rgba(59,130,246,0.1)');
+  ctx.strokeStyle = '#3b82f6';
+  ctx.lineWidth = 2;
+  vals.forEach((v, i) => {
+    const x = pad + i/200*(w-pad*1.5);
+    const y = h-pad - v/maxV*(h-pad*1.5);
+    if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+
+  // Fill
+  ctx.beginPath();
+  vals.forEach((v, i) => {
+    const x = pad + i/200*(w-pad*1.5);
+    const y = h-pad - v/maxV*(h-pad*1.5);
+    if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.lineTo(w-pad/2, h-pad); ctx.lineTo(pad, h-pad); ctx.closePath();
+  ctx.fillStyle = 'rgba(59,130,246,0.1)';
+  ctx.fill();
+  label(ctx, 't', w/2, h-4, '#6b6b8a', 10);
+  label(ctx, 'h(t)', pad, pad-6, '#6b6b8a', 9);
+}
+
+function drawLinPSD(mu, lambda, sysType) {
+  const canvas = document.getElementById('psdLinChart');
+  const ctx = clearCanvas(canvas);
+  const w = canvas.width, h = canvas.height;
+  const pad = 40;
+  const fmax = mu*2;
+  drawAxes(ctx, w, h, pad);
+
+  const Sx = lambda; // white-ish input PSD
+  const valsIn = [], valsOut = [];
+  for (let i=0; i<=200; i++) {
+    const f = i/200*fmax;
+    valsIn.push(Sx);
+    valsOut.push(Sx * transferH2(f, mu, sysType));
+  }
+  const maxV = Math.max(Sx);
+
+  // Input PSD (flat)
+  ctx.setLineDash([6,4]);
+  ctx.beginPath(); ctx.strokeStyle = 'rgba(59,130,246,0.4)'; ctx.lineWidth = 1.5;
+  ctx.moveTo(pad, h-pad-Sx/maxV*(h-pad*1.5)*0.95);
+  ctx.lineTo(w-pad/2, h-pad-Sx/maxV*(h-pad*1.5)*0.95);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Output PSD
+  ctx.beginPath(); ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2.5;
+  valsOut.forEach((v,i)=>{
+    const x = pad+i/200*(w-pad*1.5);
+    const y = h-pad-v/maxV*(h-pad*1.5);
+    if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+
+  // Fill output
+  ctx.beginPath();
+  valsOut.forEach((v,i)=>{
+    const x=pad+i/200*(w-pad*1.5); const y=h-pad-v/maxV*(h-pad*1.5);
+    if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.lineTo(w-pad/2,h-pad);ctx.lineTo(pad,h-pad);ctx.closePath();
+  ctx.fillStyle='rgba(59,130,246,0.1)';ctx.fill();
+
+  label(ctx,'S_Y(f) (blue) | S_X(f) (dashed)',w/2,14,'#6b6b8a',9);
+  label(ctx,'f',w/2,h-4,'#6b6b8a',10);
+}
+
+function drawTransferFunction(mu, sysType) {
+  const canvas = document.getElementById('tfChart');
+  const ctx = clearCanvas(canvas);
+  const w = canvas.width, h = canvas.height;
+  const pad = 40;
+  const fmax = mu*3;
+  drawAxes(ctx, w, h, pad);
+
+  ctx.beginPath(); ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2;
+  for (let i=0; i<=200; i++) {
+    const f = i/200*fmax;
+    const h2 = transferH2(f, mu, sysType);
+    const x = pad+i/200*(w-pad*1.5);
+    const y = h-pad - h2*(h-pad*1.5);
+    if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+
+  // -3dB line at f=mu/(2pi)
+  const f3 = mu/(2*Math.PI);
+  const x3 = pad + (f3/fmax)*(w-pad*1.5);
+  ctx.strokeStyle = 'rgba(59,130,246,0.3)'; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(x3, pad/2); ctx.lineTo(x3, h-pad); ctx.stroke();
+  ctx.setLineDash([]);
+  label(ctx, '|H(f)|²', w/2, 14, '#6b6b8a', 9);
+  label(ctx, 'f', w/2, h-4, '#6b6b8a', 10);
+  label(ctx, '-3dB', x3, pad/2-4, '#3b82f6', 8);
+}
+
+function drawIOSignal(mu, lambda, sysType) {
+  const canvas = document.getElementById('ioChart');
+  const ctx = clearCanvas(canvas);
+  const w = canvas.width, h = canvas.height;
+  const pad = 40;
+  drawAxes(ctx, w, h, pad);
+
+  const N = 300;
+  const input = [];
+  // Generate random process (Poisson-like impulses)
+  for (let i=0; i<N; i++) {
+    input.push(Math.random() < lambda/20 ? 1 : 0);
+  }
+
+  // Convolve with h(t) discretized
+  const hLen = 80;
+  const h_disc = [];
+  for (let i=0; i<hLen; i++) {
+    h_disc.push(impulseH(i/20, mu, sysType)/mu);
+  }
+  const output = input.map((_, i) => {
+    let sum = 0;
+    for (let j=0; j<hLen && i-j>=0; j++) sum += input[i-j]*h_disc[j];
+    return sum;
+  });
+
+  const maxIn = Math.max(...input,0.01);
+  const maxOut = Math.max(...output,0.01);
+
+  // Input
+  ctx.strokeStyle = 'rgba(59,130,246,0.4)'; ctx.lineWidth = 1;
+  input.forEach((v, i) => {
+    if (v === 0) return;
+    const x = pad + i/N*(w-pad*1.5);
+    ctx.beginPath(); ctx.moveTo(x,h/2); ctx.lineTo(x,h/2-v/maxIn*30); ctx.stroke();
+  });
+
+  // Output
+  ctx.beginPath(); ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 2;
+  output.forEach((v, i) => {
+    const x = pad + i/N*(w-pad*1.5);
+    const y = h-pad - v/maxOut*(h-pad*2);
+    if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  label(ctx, 'Input (spikes) + Output (smooth)', w/2, 14, '#6b6b8a', 9);
+}
+
+// ========================== NAVIGATION ==========================
+function showUnit(n) {
+  document.querySelectorAll('.unit-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  document.getElementById('unit'+n).classList.add('active');
+  document.querySelector(`[data-unit="${n}"]`).classList.add('active');
+
+  // Trigger redraws
+  setTimeout(() => {
+    if (n==1) { updatePoisson(); calcProb(); }
+    if (n==2) { updateConditional(); }
+    if (n==3) { updateMarkov(); }
+    if (n==4) { updateCrossCorr(); }
+    if (n==5) { updateLinearSys(); }
+  }, 50);
+}
+
+// ========================== INIT ==========================
+window.addEventListener('load', () => {
+  updatePoisson();
+  calcProb();
+  updateConditional();
+  updateMarkov();
+  updateCrossCorr();
+  updateLinearSys();
+});
+
+window.addEventListener('resize', () => {
+  const active = document.querySelector('.unit-section.active');
+  if (!active) return;
+  const n = active.id.replace('unit','');
+  showUnit(parseInt(n));
+});
+</script>
+</body>
+</html>
